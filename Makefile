@@ -1,4 +1,4 @@
-.PHONY: install lint format test dbt dagster clean
+.PHONY: install lint format test dbt dagster clean run run-dev run-full clean-data
 
 install:
 	uv sync --all-extras
@@ -12,5 +12,18 @@ format:
 test:
 	uv run pytest -q
 
+run:
+	uv run python -m pipeline.cli run --max-pages 1 --mode merge
+
+run-dev:
+	uv run python -m pipeline.cli run --max-pages 5 --mode merge
+
+run-full:
+	uv run python -m pipeline.cli run --max-pages 100 --mode merge
+
 clean:
 	rm -rf .pytest_cache .ruff_cache .mypy_cache .coverage
+
+clean-data:
+	rm -f feefo_pipeline.duckdb
+	rm -rf .dlt/pipelines/

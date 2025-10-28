@@ -8,6 +8,16 @@ uv sync
 make install
 ```
 
+## Running the pipeline
+```bash
+make run          # Quick test (1 page)
+make run-dev      # Development (5 pages)
+make run-full     # Full load (100 pages)
+make clean-data   # Clean database
+```
+
+The pipeline fetches Feefo reviews and enriches them with product ratings for each SKU found in the reviews. Data is stored in `feefo_pipeline.duckdb` under the `bronze` schema.
+
 ## Project structure
 - data/         # local DuckDB file
 - dbt/          # SQL models and transformations
