@@ -13,6 +13,16 @@ sources:
               - not_null
               - unique
 
+      - name: feefo_reviews__products
+        description: "Nested product reviews from within service reviews"
+        columns:
+          - name: product__sku
+            description: "Product SKU"
+          - name: product__title
+            description: "Product title"
+          - name: rating__rating
+            description: "Product review rating (1-5)"
+
       - name: feefo_products_for_reviews
         description: "Product ratings for SKUs found in reviews"
         columns:
