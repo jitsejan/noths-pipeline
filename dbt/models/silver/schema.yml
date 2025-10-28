@@ -1,0 +1,60 @@
+version: 2
+
+sources:
+  - name: bronze
+    schema: bronze
+    tables:
+      - name: feefo_reviews
+        description: "Raw Feefo reviews from API"
+        columns:
+          - name: url
+            description: "Unique review URL (primary key)"
+            tests:
+              - not_null
+              - unique
+
+      - name: feefo_reviews__products
+        description: "Nested product reviews from within service reviews"
+        columns:
+          - name: product__sku
+            description: "Product SKU"
+          - name: product__title
+            description: "Product title"
+          - name: rating__rating
+            description: "Product review rating (1-5)"
+
+      - name: feefo_products_for_reviews
+        description: "Product ratings for SKUs found in reviews"
+        columns:
+          - name: sku
+            description: "Product SKU (primary key)"
+            tests:
+              - not_null
+              - unique
+
+models:
+  - name: stg_feefo_reviews
+    description: "Staging view for Feefo reviews"
+    columns:
+      - name: review_id
+        description: "Unique review identifier (url)"
+        tests:
+          - not_null
+          - unique
+      - name: merchant_id
+        description: "Merchant identifier"
+      - name: service_rating
+        description: "Service rating (1-5)"
+
+  - name: stg_feefo_product_ratings
+    description: "Staging view for Feefo product ratings"
+    columns:
+      - name: product_sku
+        description: "Product SKU"
+        tests:
+          - not_null
+          - unique
+      - name: product_rating
+        description: "Product rating (1-5)"
+      - name: merchant_id
+        description: "Merchant identifier"

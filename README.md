@@ -10,13 +10,24 @@ make install
 
 ## Running the pipeline
 ```bash
+# 1. Ingest raw data (DLT)
 make run          # Quick test (1 page)
 make run-dev      # Development (5 pages)
 make run-full     # Full load (100 pages)
-make clean-data   # Clean database
+
+# 2. Transform data (dbt)
+make dbt          # Build silver + gold tables
+make dbt-test     # Run dbt tests
+
+# Full pipeline
+make clean-data && make run && make dbt
 ```
 
-The pipeline fetches Feefo reviews and enriches them with product ratings for each SKU found in the reviews. Data is stored in `feefo_pipeline.duckdb` under the `bronze` schema.
+## Data layers
+Data stored in `feefo_pipeline.duckdb`:
+- `bronze.*` - Raw DLT ingestion (feefo_reviews, feefo_products_for_reviews)
+- `silver.*` - Staging views (stg_feefo_reviews, stg_feefo_product_ratings)
+- `gold.*` - Business aggregates (product_summary)
 
 ## Project structure
 - data/         # local DuckDB file

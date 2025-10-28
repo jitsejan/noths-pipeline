@@ -1,0 +1,52 @@
+version: 2
+
+models:
+  - name: product_summary
+    description: "Product-level aggregation of reviews and ratings for business analysis"
+    columns:
+      - name: merchant_id
+        description: "Merchant identifier"
+        tests:
+          - not_null
+
+      - name: product_sku
+        description: "Product SKU (primary key)"
+        tests:
+          - not_null
+          - unique
+
+      - name: product_title
+        description: "Product title/name"
+
+      - name: review_count
+        description: "Total number of reviews for this product"
+
+      - name: avg_product_review_rating
+        description: "Average rating from individual product reviews (1-5)"
+
+      - name: avg_service_rating
+        description: "Average service rating from reviews mentioning this product (1-5)"
+
+      - name: catalog_rating
+        description: "Overall catalog rating for this product from product ratings API"
+
+      - name: rating_delta
+        description: "Difference between avg product review rating and catalog rating (recent vs overall)"
+
+      - name: latest_review_date
+        description: "Date of most recent review"
+
+      - name: first_review_date
+        description: "Date of first review"
+
+      - name: reviews_with_text
+        description: "Count of reviews that include written feedback"
+
+      - name: negative_reviews
+        description: "Count of reviews with rating <= 2"
+
+      - name: positive_reviews
+        description: "Count of reviews with rating >= 4"
+
+      - name: overall_sentiment
+        description: "Overall sentiment (positive/negative/neutral) based on review ratings"
