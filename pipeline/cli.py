@@ -3,7 +3,12 @@
 import argparse
 
 from pipeline.extract import run_dlt
-from pipeline.settings import DEFAULT_MAX_PAGES, DEFAULT_MERCHANT_ID
+from pipeline.settings import (
+    DEFAULT_INCLUDE_RATINGS,
+    DEFAULT_MAX_PAGES,
+    DEFAULT_MERCHANT_ID,
+    DEFAULT_PERIOD_DAYS,
+)
 
 
 def main() -> None:
@@ -34,6 +39,25 @@ def main() -> None:
         help="Write mode (default: merge)",
     )
     run_parser.add_argument(
+        "--include-ratings",
+        dest="include_ratings",
+        action="store_true",
+        default=DEFAULT_INCLUDE_RATINGS,
+        help="Fetch product ratings for reviewed SKUs (default: enabled)",
+    )
+    run_parser.add_argument(
+        "--no-include-ratings",
+        dest="include_ratings",
+        action="store_false",
+        help="Skip fetching product ratings",
+    )
+    run_parser.add_argument(
+        "--period-days",
+        type=int,
+        default=DEFAULT_PERIOD_DAYS,
+        help="Filter product ratings by period (e.g., 30 for last 30 days, default: all time)",
+    )
+    run_parser.add_argument(
         "--since",
         type=str,
         default=None,
@@ -53,6 +77,8 @@ def main() -> None:
             merchant_id=args.merchant_id,
             mode=args.mode,
             max_pages=args.max_pages,
+            include_ratings=args.include_ratings,
+            period_days=args.period_days,
             since=args.since,
             until=args.until,
         )
