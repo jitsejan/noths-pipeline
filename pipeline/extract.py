@@ -15,34 +15,50 @@ from pipeline.settings import (
 
 
 @dlt.resource(name="feefo_products_for_reviews", write_disposition="merge", primary_key="sku")
-def fetch_products_for_skus(merchant_id: str, skus: list[str]) -> Any:
+def fetch_products_from_reviews(merchant_id: str, reviews_resource: Any) -> Any:
     """
-    Fetch product ratings for specific SKUs.
+    Transformer that extracts SKUs from reviews and fetches product ratings.
 
     Args:
         merchant_id: Merchant identifier
-        skus: List of product SKUs to fetch
+        reviews_resource: The reviews resource to transform
 
     Yields:
-        Product rating data for each SKU
+        Product rating data for SKUs found in reviews
     """
-    for sku in skus:
-        url = f"{FEEFO_API_BASE_URL}/products/ratings"
-        params = {
-            "merchant_identifier": merchant_id,
-            "product_sku": sku,
-        }
+    seen_skus = set()
 
-        response = requests.get(url, params=params)
-        response.raise_for_status()
-        data = response.json()
+    # Process reviews as they come through
+    for review in reviews_resource:
+        # Extract products from nested structure
+        products = review.get("products", [])
 
-        # The API returns products array even for single SKU queries
-        if "products" in data and data["products"]:
-            yield from data["products"]
+        for product in products:
+            # Get SKU from nested product structure
+            product_data = product.get("product", {})
+            sku = product_data.get("sku")
+
+            # Only fetch each SKU once
+            if sku and sku not in seen_skus:
+                seen_skus.add(sku)
+
+                url = f"{FEEFO_API_BASE_URL}/products/ratings"
+                params = {
+                    "merchant_identifier": merchant_id,
+                    "product_sku": sku,
+                }
+
+                response = requests.get(url, params=params)
+                response.raise_for_status()
+                data = response.json()
+
+                # Yield product ratings
+                if "products" in data and data["products"]:
+                    yield from data["products"]
 
 
-def feefo_reviews(
+@dlt.source
+def feefo_source(
     merchant_id: str = DEFAULT_MERCHANT_ID,
     max_pages: int = DEFAULT_MAX_PAGES,
     since: Optional[str] = None,
@@ -58,7 +74,7 @@ def feefo_reviews(
         until: Optional end date filter
 
     Returns:
-        DLT source for Feefo API data
+        DLT source with reviews and enriched product ratings
     """
     # Build query parameters
     params = {"merchant_identifier": merchant_id}
@@ -67,6 +83,7 @@ def feefo_reviews(
     if until:
         params["until"] = until
 
+    # Configure reviews resource
     config = {
         "client": {
             "base_url": FEEFO_API_BASE_URL,
@@ -90,7 +107,15 @@ def feefo_reviews(
         ],
     }
 
-    return rest_api_source(config)
+    # Get the reviews resource from the REST API source
+    reviews_source = rest_api_source(config)
+    reviews = reviews_source.feefo_reviews
+
+    # Create products resource that transforms reviews
+    products = fetch_products_from_reviews(merchant_id, reviews)
+
+    # Return both resources
+    return reviews, products
 
 
 def run_dlt(
@@ -129,44 +154,14 @@ def run_dlt(
         dataset_name="bronze",
     )
 
-    # Step 1: Get reviews source
-    source = feefo_reviews(merchant_id=merchant_id, max_pages=max_pages, since=since, until=until)
+    # Get source with both reviews and products resources
+    source = feefo_source(merchant_id=merchant_id, max_pages=max_pages, since=since, until=until)
 
-    # Apply write disposition to resources
+    # Apply write disposition to all resources
     for resource in source.resources.values():
         resource.apply_hints(write_disposition=write_disposition)
 
-    # Step 2: Run pipeline to load reviews
-    print("Loading reviews...")  # noqa: T201
+    # Run pipeline - processes both reviews and products
+    print("Loading Feefo reviews and product ratings...")  # noqa: T201
     load_info = pipeline.run(source)
     print(load_info)  # noqa: T201
-
-    # Step 3: Extract SKUs from reviews and fetch product ratings
-    print("\nExtracting SKUs from reviews...")  # noqa: T201
-
-    # Query the loaded reviews to get unique product SKUs
-    import duckdb
-    conn = duckdb.connect(f"{pipeline.pipeline_name}.duckdb")
-
-    try:
-        skus_result = conn.execute("""
-            SELECT DISTINCT product__sku
-            FROM bronze.feefo_reviews__products
-            WHERE product__sku IS NOT NULL
-        """).fetchall()
-
-        skus = [row[0] for row in skus_result]
-        print(f"Found {len(skus)} unique product SKUs in reviews")  # noqa: T201
-
-        if skus:
-            # Step 4: Fetch product ratings for those SKUs
-            print("Fetching product ratings for reviewed SKUs...")  # noqa: T201
-            products_resource = fetch_products_for_skus(merchant_id, skus)
-            products_resource.apply_hints(write_disposition=write_disposition)
-
-            load_info = pipeline.run(products_resource)
-            print(load_info)  # noqa: T201
-        else:
-            print("No product SKUs found in reviews")  # noqa: T201
-    finally:
-        conn.close()
