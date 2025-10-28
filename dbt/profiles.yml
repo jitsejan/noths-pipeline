@@ -1,0 +1,8 @@
+noths_pipeline:
+  target: dev
+  outputs:
+    dev:
+      type: duckdb
+      path: ../feefo_pipeline.duckdb
+      schema: main
+      threads: 4

@@ -1,4 +1,4 @@
-.PHONY: install lint format test dbt dagster clean run run-dev run-full clean-data
+.PHONY: install lint format test dbt dbt-test dagster clean run run-dev run-full clean-data
 
 install:
 	uv sync --all-extras
@@ -11,6 +11,12 @@ format:
 
 test:
 	uv run pytest -q
+
+dbt:
+	cd dbt && uv run dbt run
+
+dbt-test:
+	cd dbt && uv run dbt test
 
 run:
 	uv run python -m pipeline.cli run --max-pages 1 --mode merge

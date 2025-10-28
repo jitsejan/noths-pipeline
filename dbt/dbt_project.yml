@@ -1,0 +1,26 @@
+name: 'noths_pipeline'
+version: '1.0.0'
+profile: 'noths_pipeline'
+
+model-paths: ["models"]
+analysis-paths: ["analyses"]
+test-paths: ["tests"]
+seed-paths: ["seeds"]
+macro-paths: ["macros"]
+snapshot-paths: ["snapshots"]
+
+clean-targets:
+  - "target"
+  - "dbt_packages"
+
+vars:
+  merchant_id: "notonthehighstreet-com"
+
+models:
+  noths_pipeline:
+    silver:
+      +materialized: view
+      +schema: silver
+    gold:
+      +materialized: table
+      +schema: gold
