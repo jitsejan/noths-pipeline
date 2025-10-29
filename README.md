@@ -1,6 +1,6 @@
 # noths-pipeline
 
-Reviews-first Feefo data pipeline for NOTHS, with product and rating enrichment using DLT, dbt & Dagster.
+Reviews-first Feefo data pipeline for NOTHS, with product and rating enrichment using DLT, dbt & DuckDB.
 
 ## Quickstart
 ```bash
