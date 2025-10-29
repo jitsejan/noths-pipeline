@@ -69,9 +69,15 @@ def fetch_products_from_reviews(
                     response.raise_for_status()
                     data = response.json()
 
-                    # Yield product ratings
+                    # Yield product ratings with sentiment analysis
                     if "products" in data and data["products"]:
-                        yield from data["products"]
+                        for product in data["products"]:
+                            # Add sentiment category based on rating and reviews
+                            product["category"] = categorise_review(
+                                rating=product.get("average_rating"),
+                                review=product.get("review_text", ""),
+                            )
+                            yield product
                         logger.debug("Successfully fetched ratings for SKU: %s", sku)
                     else:
                         logger.warning("No product data found for SKU: %s", sku)
@@ -148,12 +154,54 @@ def feefo_source(
     reviews_source = rest_api_source(config)  # type: ignore[arg-type]
     reviews = reviews_source.feefo_reviews
 
-    # Conditionally create products resource
+    # Conditionally create products resource (with sentiment analysis included)
     if include_ratings:
         products = fetch_products_from_reviews(merchant_id, reviews, period_days)
         return reviews, products
     else:
         return (reviews,)
+
+
+def categorise_review(rating: float | None = None, review: str = "") -> str:
+    """
+    Simple sentiment analysis based on rating and keywords in the review text.
+
+    Priority order:
+    1. If rating is available, use it (4-5=positive, 3=neutral, 1-2=negative)
+    2. Otherwise, scan review text for positive/negative keywords
+    3. Default to neutral if no signals found
+
+    Args:
+        rating: Numerical rating (optional, 1-5 scale)
+        review: Text of the review
+
+    Returns:
+        Sentiment category: 'positive', 'neutral', or 'negative'
+    """
+    # Define sentiment keywords
+    positive_keywords = ("excellent", "amazing", "love", "perfect", "beautiful", "great", "fantastic")
+    negative_keywords = ("disappointed", "poor", "terrible", "awful", "broken", "bad", "worst")
+
+    # Priority 1: Use rating if available
+    if rating is not None:
+        if rating >= 4:
+            return "positive"
+        elif rating == 3:
+            return "neutral"
+        else:
+            return "negative"
+
+    # Priority 2: Scan review text for keywords
+    review_lower = review.lower()
+    review_words = review_lower.split()
+    for word in review_words:
+        if word in positive_keywords:
+            return "positive"
+        elif word in negative_keywords:
+            return "negative"
+
+    # Default: neutral
+    return "neutral"
 
 
 def run_dlt(
