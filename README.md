@@ -23,11 +23,55 @@ make dbt-test     # Run dbt tests
 make clean-data && make run && make dbt
 ```
 
+## Running inside Docker
+Build the image (uses the lock file for deterministic installs):
+
+```bash
+docker build -t noths-pipeline .
+```
+
+Run the full ingestion + transformation flow:
+
+```bash
+docker run --rm \
+  -v "$(pwd)/data:/app/data" \
+  -e MAX_PAGES=5 \
+  noths-pipeline
+```
+
+Using the bundled make targets:
+
+```bash
+make docker-build
+make docker-run DOCKER_RUN_ARGS="-e MAX_PAGES=5"
+```
+
+Environment variables recognised by the container:
+- `MERCHANT_ID` (default `notonthehighstreet-com`)
+- `MAX_PAGES` (default `1`)
+- `MODE` (default `merge`)
+- `PERIOD_DAYS`, `SINCE`, `UNTIL`
+- `INCLUDE_RATINGS` (`1` to include ratings, `0` to skip)
+- `DUCKDB_PATH` (default `/app/data/feefo_pipeline.duckdb`)
+
+Mount `$(pwd)/data` (as shown above) to persist the DuckDB output on the host.
+
+When the container finishes, it will display the top five products by review count using the `gold.product_summary` table so you can immediately see the results.
+
 ## Data layers
 Data stored in `feefo_pipeline.duckdb`:
 - `bronze.*` - Raw DLT ingestion (feefo_reviews, feefo_products_for_reviews)
 - `silver.*` - Staging views (stg_feefo_reviews, stg_feefo_product_ratings)
 - `gold.*` - Business aggregates (product_summary)
+
+## Design choices
+- `dlt` handles pagination, deduping, and incremental loading out of the box, so ingestion code stays tiny.
+- `dbt` keeps transformations declarative and reviewable for both analysts and engineers.
+- `DuckDB` is a fast, portable analytical store that works locally without extra services.
+- `pytest` (with parametrisation) gives terse, expressive tests compared to the heavier `unittest` workflow.
+- `pre-commit` wires linting, typing, and data tests into a single command for consistent CI parity.
+- Medallion layering (bronze → silver → gold) makes the pipeline easy to navigate and extend.
+- `uv` provides deterministic Python environments and dependency resolution faster than pip or poetry.
 
 ## Project structure
 - data/         # local DuckDB file
