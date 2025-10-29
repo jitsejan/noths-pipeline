@@ -3,6 +3,6 @@ noths_pipeline:
   outputs:
     dev:
       type: duckdb
-      path: ../feefo_pipeline.duckdb
+      path: ../data/feefo_pipeline.duckdb
       schema: main
       threads: 4

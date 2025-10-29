@@ -11,9 +11,9 @@ from pipeline.extract import run_dlt
 
 def get_db_path(tmp_path_factory: Path) -> str:
     """Get the path to the DuckDB database created by DLT."""
-    # DLT creates the database in the current working directory
-    # But with our mock_env, it's in the tmp directory
-    return "feefo_pipeline.duckdb"
+    import os
+    # Use the environment variable set by mock_env
+    return os.getenv("DUCKDB_PATH", "feefo_pipeline.duckdb")
 
 
 @pytest.mark.parametrize(

@@ -2,7 +2,7 @@ version: 2
 
 models:
   - name: product_summary
-    description: "Product-level aggregation of reviews and ratings for business analysis"
+    description: "Product-level aggregation of reviews and ratings for business analysis (base table)"
     columns:
       - name: merchant_id
         description: "Merchant identifier"
@@ -50,3 +50,28 @@ models:
 
       - name: overall_sentiment
         description: "Overall sentiment (positive/negative/neutral) based on review ratings"
+
+  - name: product_ratings_summary
+    description: "Summary Output 1: Average rating per product with comprehensive rating metrics"
+    columns:
+      - name: product_sku
+        description: "Product SKU"
+        tests:
+          - not_null
+          - unique
+      - name: avg_product_review_rating
+        description: "Average rating from individual product reviews (1-5)"
+      - name: review_count
+        description: "Total number of reviews for this product"
+
+  - name: top_products_by_reviews
+    description: "Summary Output 2: Top 5 products ranked by number of reviews"
+    columns:
+      - name: product_sku
+        description: "Product SKU"
+        tests:
+          - not_null
+      - name: review_count
+        description: "Total number of reviews for this product"
+        tests:
+          - not_null
