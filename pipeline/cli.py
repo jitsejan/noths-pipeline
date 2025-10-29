@@ -1,6 +1,8 @@
 """CLI for running Feefo data pipeline."""
 
 import argparse
+import logging
+import sys
 
 from pipeline.extract import run_dlt
 from pipeline.settings import (
@@ -9,6 +11,24 @@ from pipeline.settings import (
     DEFAULT_MERCHANT_ID,
     DEFAULT_PERIOD_DAYS,
 )
+
+# Configure logging
+logger = logging.getLogger(__name__)
+
+
+def setup_logging(verbose: bool = False) -> None:
+    """
+    Configure logging for the application.
+
+    Args:
+        verbose: If True, set log level to DEBUG; otherwise INFO
+    """
+    log_level = logging.DEBUG if verbose else logging.INFO
+    logging.basicConfig(
+        level=log_level,
+        format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
+        datefmt="%Y-%m-%d %H:%M:%S",
+    )
 
 
 def main() -> None:
@@ -69,19 +89,34 @@ def main() -> None:
         default=None,
         help="End date filter (optional)",
     )
+    run_parser.add_argument(
+        "-v",
+        "--verbose",
+        action="store_true",
+        help="Enable verbose logging (DEBUG level)",
+    )
 
     args = parser.parse_args()
 
+    # Setup logging based on verbosity
+    setup_logging(verbose=getattr(args, "verbose", False))
+
     if args.command == "run":
-        run_dlt(
-            merchant_id=args.merchant_id,
-            mode=args.mode,
-            max_pages=args.max_pages,
-            include_ratings=args.include_ratings,
-            period_days=args.period_days,
-            since=args.since,
-            until=args.until,
-        )
+        try:
+            logger.info("Starting pipeline execution")
+            run_dlt(
+                merchant_id=args.merchant_id,
+                mode=args.mode,
+                max_pages=args.max_pages,
+                include_ratings=args.include_ratings,
+                period_days=args.period_days,
+                since=args.since,
+                until=args.until,
+            )
+            logger.info("Pipeline execution completed successfully")
+        except Exception as e:
+            logger.error("Pipeline execution failed: %s", e)
+            sys.exit(1)
     else:
         parser.print_help()
 
