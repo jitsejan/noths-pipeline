@@ -18,10 +18,31 @@ sources:
         columns:
           - name: product__sku
             description: "Product SKU"
+            tests:
+              - not_null
+              - relationships:
+                  arguments:
+                    to: ref('stg_feefo_product_ratings')
+                    field: product_sku
+                  config:
+                    severity: warn  # Warn because not all reviewed SKUs may have ratings
           - name: product__title
             description: "Product title"
           - name: rating__rating
             description: "Product review rating (1-5)"
+            tests:
+              - accepted_values:
+                  arguments:
+                    values: [1, 2, 3, 4, 5]
+                    quote: false
+          - name: _dlt_parent_id
+            description: "DLT parent ID linking to feefo_reviews._dlt_id"
+            tests:
+              - not_null
+              - relationships:
+                  arguments:
+                    to: source('bronze', 'feefo_reviews')
+                    field: _dlt_id
 
       - name: feefo_products_for_reviews
         description: "Product ratings for SKUs found in reviews"
@@ -34,7 +55,7 @@ sources:
 
 models:
   - name: stg_feefo_reviews
-    description: "Staging view for Feefo reviews"
+    description: "Staging view for Feefo reviews with nullable field handling"
     columns:
       - name: review_id
         description: "Unique review identifier (url)"
@@ -42,9 +63,46 @@ models:
           - not_null
           - unique
       - name: merchant_id
-        description: "Merchant identifier"
+        description: "Merchant identifier (COALESCE default: 'unknown')"
+        tests:
+          - not_null
+      - name: service_id
+        description: "Service ID (nullable - may be missing for some review types)"
       - name: service_rating
-        description: "Service rating (1-5)"
+        description: "Service rating 1-5 (nullable - some reviews have no rating)"
+        tests:
+          - accepted_values:
+              arguments:
+                values: [1, 2, 3, 4, 5]
+                quote: false
+      - name: rating_min
+        description: "Minimum rating value (COALESCE default: 1)"
+        tests:
+          - not_null
+      - name: rating_max
+        description: "Maximum rating value (COALESCE default: 5)"
+        tests:
+          - not_null
+      - name: moderation_status
+        description: "Moderation status (COALESCE default: 'unmoderated')"
+        tests:
+          - not_null
+      - name: verification_state
+        description: "Feedback verification state (COALESCE default: 'unverified')"
+        tests:
+          - not_null
+      - name: created_at
+        description: "Review creation timestamp (nullable - may be missing for legacy data)"
+      - name: helpful_votes
+        description: "Number of helpful votes (COALESCE default: 0)"
+        tests:
+          - not_null
+      - name: locale
+        description: "Locale/language code (COALESCE default: 'en_GB')"
+        tests:
+          - not_null
+      - name: last_updated_date
+        description: "Last updated timestamp (nullable)"
 
   - name: stg_feefo_product_ratings
     description: "Staging view for Feefo product ratings"
@@ -55,6 +113,8 @@ models:
           - not_null
           - unique
       - name: product_rating
-        description: "Product rating (1-5)"
+        description: "Product rating (decimal, 1.0-5.0)"
       - name: merchant_id
         description: "Merchant identifier"
+        tests:
+          - not_null

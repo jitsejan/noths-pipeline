@@ -31,5 +31,6 @@ clean:
 	rm -rf .pytest_cache .ruff_cache .mypy_cache .coverage
 
 clean-data:
+	rm -f data/feefo_pipeline.duckdb
 	rm -f feefo_pipeline.duckdb
 	rm -rf .dlt/pipelines/

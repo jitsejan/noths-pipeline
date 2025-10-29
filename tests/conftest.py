@@ -42,17 +42,13 @@ def mock_env(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> Generator[None,
     monkeypatch.setenv("DLT_DATA_DIR", str(dlt_dir / "data"))
     monkeypatch.setenv("DLT_PIPELINE_DIR", str(dlt_dir / "pipelines"))
 
+    # Set test database path to temp directory (isolate from production data!)
+    test_db_path = tmp_path / "test_feefo_pipeline.duckdb"
+    monkeypatch.setenv("DUCKDB_PATH", str(test_db_path))
+
     yield
 
-    # Cleanup: Remove the DuckDB database file after each test
-    import os
-    db_file = "feefo_pipeline.duckdb"
-    if os.path.exists(db_file):
-        os.remove(db_file)
-    # Also remove any .wal files
-    wal_file = f"{db_file}.wal"
-    if os.path.exists(wal_file):
-        os.remove(wal_file)
+    # Cleanup happens automatically with tmp_path
 
 
 @pytest.fixture

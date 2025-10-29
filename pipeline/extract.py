@@ -166,9 +166,17 @@ def run_dlt(
     write_disposition = write_disposition_map[mode]
 
     # Create pipeline
+    import os
+
+    # Use environment variable for database path (for test isolation)
+    db_path = os.getenv("DUCKDB_PATH", "data/feefo_pipeline.duckdb")
+    db_dir = os.path.dirname(db_path)
+    if db_dir:
+        os.makedirs(db_dir, exist_ok=True)
+
     pipeline = dlt.pipeline(
         pipeline_name="feefo_pipeline",
-        destination="duckdb",
+        destination=dlt.destinations.duckdb(db_path),
         dataset_name="bronze",
     )
 
