@@ -1,5 +1,7 @@
 """Extract functions for Feefo API data ingestion."""
 
+import logging
+from collections.abc import Generator
 from typing import Any
 
 import dlt
@@ -15,9 +17,14 @@ from pipeline.settings import (
     FEEFO_API_BASE_URL,
 )
 
+# Configure logging
+logger = logging.getLogger(__name__)
+
 
 @dlt.resource(name="feefo_products_for_reviews", write_disposition="merge", primary_key="sku")
-def fetch_products_from_reviews(merchant_id: str, reviews_resource: Any, period_days: int | None = None) -> Any:
+def fetch_products_from_reviews(
+    merchant_id: str, reviews_resource: Any, period_days: int | None = None
+) -> Generator[dict[str, Any], None, None]:
     """
     Transformer that extracts SKUs from reviews and fetches product ratings.
 
@@ -29,7 +36,8 @@ def fetch_products_from_reviews(merchant_id: str, reviews_resource: Any, period_
     Yields:
         Product rating data for SKUs found in reviews
     """
-    seen_skus = set()
+    seen_skus: set[str] = set()
+    logger.info("Starting product rating enrichment for merchant: %s", merchant_id)
 
     # Process reviews as they come through
     for review in reviews_resource:
@@ -44,6 +52,7 @@ def fetch_products_from_reviews(merchant_id: str, reviews_resource: Any, period_
             # Only fetch each SKU once
             if sku and sku not in seen_skus:
                 seen_skus.add(sku)
+                logger.debug("Fetching ratings for SKU: %s", sku)
 
                 url = f"{FEEFO_API_BASE_URL}/products/ratings"
                 params = {
@@ -55,13 +64,29 @@ def fetch_products_from_reviews(merchant_id: str, reviews_resource: Any, period_
                 if period_days:
                     params["since_period"] = f"{period_days}days"
 
-                response = requests.get(url, params=params)
-                response.raise_for_status()
-                data = response.json()
+                try:
+                    response = requests.get(url, params=params, timeout=30)
+                    response.raise_for_status()
+                    data = response.json()
 
-                # Yield product ratings
-                if "products" in data and data["products"]:
-                    yield from data["products"]
+                    # Yield product ratings
+                    if "products" in data and data["products"]:
+                        yield from data["products"]
+                        logger.debug("Successfully fetched ratings for SKU: %s", sku)
+                    else:
+                        logger.warning("No product data found for SKU: %s", sku)
+
+                except requests.exceptions.HTTPError as e:
+                    logger.error("HTTP error fetching ratings for SKU %s: %s", sku, e)
+                    # Continue processing other SKUs
+                except requests.exceptions.RequestException as e:
+                    logger.error("Request error fetching ratings for SKU %s: %s", sku, e)
+                    # Continue processing other SKUs
+                except ValueError as e:
+                    logger.error("JSON decode error for SKU %s: %s", sku, e)
+                    # Continue processing other SKUs
+
+    logger.info("Completed product rating enrichment. Total unique SKUs processed: %d", len(seen_skus))
 
 
 @dlt.source
@@ -72,7 +97,7 @@ def feefo_source(
     period_days: int | None = DEFAULT_PERIOD_DAYS,
     since: str | None = None,
     until: str | None = None,
-) -> Any:
+) -> tuple[Any, ...]:
     """
     Create a DLT source for Feefo reviews and products.
 
@@ -85,7 +110,8 @@ def feefo_source(
         until: Optional end date filter
 
     Returns:
-        DLT source with reviews and optionally enriched product ratings
+        Tuple of DLT resources (reviews, and optionally products)
+        Note: Return type uses Any due to DLT's dynamic resource system
     """
     # Build query parameters
     params = {"merchant_identifier": merchant_id}
@@ -119,7 +145,7 @@ def feefo_source(
     }
 
     # Get the reviews resource from the REST API source
-    reviews_source = rest_api_source(config)
+    reviews_source = rest_api_source(config)  # type: ignore[arg-type]
     reviews = reviews_source.feefo_reviews
 
     # Conditionally create products resource
@@ -150,7 +176,15 @@ def run_dlt(
         period_days: Filter ratings by days (e.g., 30 for last 30 days, None for all time)
         since: Optional start date filter
         until: Optional end date filter
+
+    Raises:
+        ValueError: If mode is not one of 'merge', 'replace', or 'append'
+        RuntimeError: If pipeline execution fails
     """
+    logger.info("Starting DLT pipeline run")
+    logger.info("Parameters: merchant_id=%s, mode=%s, max_pages=%d", merchant_id, mode, max_pages)
+    logger.info("Options: include_ratings=%s, period_days=%s", include_ratings, period_days)
+
     # Map mode to write_disposition
     write_disposition_map = {
         "merge": "merge",
@@ -159,44 +193,60 @@ def run_dlt(
     }
 
     if mode not in write_disposition_map:
-        raise ValueError(f"Invalid mode: {mode}. Must be one of: merge, replace, append")
+        error_msg = f"Invalid mode: {mode}. Must be one of: merge, replace, append"
+        logger.error(error_msg)
+        raise ValueError(error_msg)
 
     write_disposition = write_disposition_map[mode]
 
-    # Create pipeline
-    import os
+    try:
+        # Create pipeline
+        import os
 
-    # Use environment variable for database path (for test isolation)
-    db_path = os.getenv("DUCKDB_PATH", "data/feefo_pipeline.duckdb")
-    db_dir = os.path.dirname(db_path)
-    if db_dir:
-        os.makedirs(db_dir, exist_ok=True)
+        # Use environment variable for database path (for test isolation)
+        db_path = os.getenv("DUCKDB_PATH", "data/feefo_pipeline.duckdb")
+        db_dir = os.path.dirname(db_path)
+        if db_dir:
+            os.makedirs(db_dir, exist_ok=True)
+            logger.info("Database directory created/verified: %s", db_dir)
 
-    pipeline = dlt.pipeline(
-        pipeline_name="feefo_pipeline",
-        destination=dlt.destinations.duckdb(db_path),
-        dataset_name="bronze",
-    )
+        logger.info("Creating DLT pipeline with database: %s", db_path)
+        pipeline = dlt.pipeline(
+            pipeline_name="feefo_pipeline",
+            destination=dlt.destinations.duckdb(db_path),
+            dataset_name="bronze",
+        )
 
-    # Get source with reviews and optionally products
-    source = feefo_source(
-        merchant_id=merchant_id,
-        max_pages=max_pages,
-        include_ratings=include_ratings,
-        period_days=period_days,
-        since=since,
-        until=until,
-    )
+        # Get source with reviews and optionally products
+        logger.info("Configuring data source")
+        source = feefo_source(
+            merchant_id=merchant_id,
+            max_pages=max_pages,
+            include_ratings=include_ratings,
+            period_days=period_days,
+            since=since,
+            until=until,
+        )
 
-    # Apply write disposition to all resources
-    for resource in source.resources.values():
-        resource.apply_hints(write_disposition=write_disposition)
+        # Apply write disposition to all resources
+        for resource in source.resources.values():
+            resource.apply_hints(write_disposition=write_disposition)  # type: ignore[arg-type]
+            logger.debug("Applied write disposition '%s' to resource: %s", write_disposition, resource.name)
 
-    # Run pipeline
-    if include_ratings:
-        print("Loading Feefo reviews and product ratings...")  # noqa: T201
-    else:
-        print("Loading Feefo reviews (skipping product ratings)...")  # noqa: T201
+        # Run pipeline
+        if include_ratings:
+            logger.info("Loading Feefo reviews and product ratings...")
+        else:
+            logger.info("Loading Feefo reviews (skipping product ratings)...")
 
-    load_info = pipeline.run(source)
-    print(load_info)  # noqa: T201
+        load_info = pipeline.run(source)
+        logger.info("Pipeline execution completed successfully")
+        logger.info("Load info: %s", load_info)
+
+    except ValueError:
+        # Re-raise ValueError (already logged above)
+        raise
+    except Exception as e:
+        error_msg = f"Pipeline execution failed: {e}"
+        logger.exception(error_msg)
+        raise RuntimeError(error_msg) from e

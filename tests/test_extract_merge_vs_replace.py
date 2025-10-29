@@ -1,6 +1,5 @@
 """Test merge vs replace write dispositions for idempotency."""
 
-from pathlib import Path
 from unittest.mock import MagicMock
 
 import duckdb
@@ -9,7 +8,7 @@ import pytest
 from pipeline.extract import run_dlt
 
 
-def get_db_path(tmp_path_factory: Path) -> str:
+def get_db_path() -> str:
     """Get the path to the DuckDB database created by DLT."""
     import os
 
@@ -46,7 +45,7 @@ def test_write_disposition_behavior(
     )
 
     # Check data after first run
-    db_path = get_db_path(None)
+    db_path = get_db_path()
     conn = duckdb.connect(db_path)
     result = conn.execute("SELECT COUNT(*) FROM bronze.feefo_reviews").fetchone()
     first_count = result[0] if result else 0

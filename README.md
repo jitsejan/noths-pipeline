@@ -23,6 +23,38 @@ make dbt-test     # Run dbt tests
 make clean-data && make run && make dbt
 ```
 
+## Code quality
+
+### Pre-commit hooks
+Install pre-commit hooks to automatically run linting, type checking, and tests before each commit:
+
+```bash
+make pre-commit-install
+```
+
+The following hooks will run on commit:
+- **ruff** - Python linter and formatter
+- **mypy** - Static type checker
+- **sqlfluff** - SQL linter with dbt templating support
+- **pytest** - Python unit tests (runs on every commit)
+- **dbt test** - dbt data tests (runs when dbt files change)
+
+Run all hooks manually without committing:
+```bash
+make pre-commit-run
+```
+
+Run linting and formatting separately:
+```bash
+make lint      # Check code with ruff + mypy
+make format    # Auto-fix formatting with ruff
+```
+
+Skip hooks for a specific commit (use sparingly):
+```bash
+git commit --no-verify -m "message"
+```
+
 ## Running inside Docker
 Build the image (uses the lock file for deterministic installs):
 

@@ -42,7 +42,7 @@ repos:
         language: system
         pass_filenames: false
         always_run: true
-        stages: [commit]
+        stages: [pre-commit]
 
   # DBT tests - Run dbt test
   - repo: local
@@ -54,7 +54,7 @@ repos:
         pass_filenames: false
         always_run: false
         files: ^dbt/
-        stages: [commit]
+        stages: [pre-commit]
 
   # Standard pre-commit hooks
   - repo: https://github.com/pre-commit/pre-commit-hooks
