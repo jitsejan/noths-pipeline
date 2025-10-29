@@ -1,4 +1,8 @@
-.PHONY: install lint format test dbt dbt-test dagster clean run run-dev run-full clean-data pre-commit-install pre-commit-run
+.PHONY: install lint format test dbt dbt-test dagster clean run run-dev run-full clean-data pre-commit-install pre-commit-run docker-build docker-run
+
+DOCKER_IMAGE ?= noths-pipeline
+DOCKER_DATA_DIR ?= $(CURDIR)/data
+DOCKER_RUN_ARGS ?=
 
 install:
 	uv sync --all-extras
@@ -34,6 +38,12 @@ run-dev:
 
 run-full:
 	uv run python -m pipeline.cli run --max-pages 100 --mode merge
+
+docker-build:
+	docker build -t $(DOCKER_IMAGE) .
+
+docker-run: docker-build
+	docker run --rm -v "$(DOCKER_DATA_DIR):/app/data" $(DOCKER_RUN_ARGS) $(DOCKER_IMAGE)
 
 clean:
 	rm -rf .pytest_cache .ruff_cache .mypy_cache .coverage
