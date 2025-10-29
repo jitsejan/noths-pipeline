@@ -1,6 +1,6 @@
 """Extract functions for Feefo API data ingestion."""
 
-from typing import Any, Optional
+from typing import Any
 
 import dlt
 import requests
@@ -17,9 +17,7 @@ from pipeline.settings import (
 
 
 @dlt.resource(name="feefo_products_for_reviews", write_disposition="merge", primary_key="sku")
-def fetch_products_from_reviews(
-    merchant_id: str, reviews_resource: Any, period_days: Optional[int] = None
-) -> Any:
+def fetch_products_from_reviews(merchant_id: str, reviews_resource: Any, period_days: int | None = None) -> Any:
     """
     Transformer that extracts SKUs from reviews and fetches product ratings.
 
@@ -71,9 +69,9 @@ def feefo_source(
     merchant_id: str = DEFAULT_MERCHANT_ID,
     max_pages: int = DEFAULT_MAX_PAGES,
     include_ratings: bool = DEFAULT_INCLUDE_RATINGS,
-    period_days: Optional[int] = DEFAULT_PERIOD_DAYS,
-    since: Optional[str] = None,
-    until: Optional[str] = None,
+    period_days: int | None = DEFAULT_PERIOD_DAYS,
+    since: str | None = None,
+    until: str | None = None,
 ) -> Any:
     """
     Create a DLT source for Feefo reviews and products.
@@ -137,9 +135,9 @@ def run_dlt(
     mode: str = "merge",
     max_pages: int = DEFAULT_MAX_PAGES,
     include_ratings: bool = DEFAULT_INCLUDE_RATINGS,
-    period_days: Optional[int] = DEFAULT_PERIOD_DAYS,
-    since: Optional[str] = None,
-    until: Optional[str] = None,
+    period_days: int | None = DEFAULT_PERIOD_DAYS,
+    since: str | None = None,
+    until: str | None = None,
 ) -> None:
     """
     Run DLT pipeline to load Feefo data into DuckDB.

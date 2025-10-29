@@ -10,11 +10,11 @@ with source as (
 
 renamed as (
     select
-        sku as product_sku,
-        rating as product_rating,
+        sku product_sku,
+        rating product_rating,
         _dlt_load_id,
         _dlt_id,
-        '{{ var("merchant_id") }}' as merchant_id
+        '{{ var("merchant_id") }}' merchant_id
 
     from source
 )

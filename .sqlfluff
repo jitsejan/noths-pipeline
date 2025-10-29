@@ -1,0 +1,63 @@
+[sqlfluff]
+# SQL dialect
+dialect = duckdb
+
+# Use dbt templater
+templater = dbt
+
+# Exclude compiled/target directories
+exclude_rules = None
+output_line_length = 120
+
+[sqlfluff:templater:dbt]
+# Path to dbt project
+project_dir = dbt/
+# dbt profiles directory (default ~/.dbt)
+profiles_dir = dbt/
+# Target to use from profiles.yml
+target = dev
+
+[sqlfluff:indentation]
+indent_unit = space
+tab_space_size = 4
+indented_joins = false
+indented_using_on = true
+template_blocks_indent = true
+
+[sqlfluff:layout:type:comma]
+line_position = trailing
+
+[sqlfluff:rules]
+# Lowercase keywords
+capitalisation_policy = lower
+# Allow table aliases
+allow_scalar = true
+
+[sqlfluff:rules:capitalisation.keywords]
+capitalisation_policy = lower
+
+[sqlfluff:rules:capitalisation.identifiers]
+capitalisation_policy = lower
+
+[sqlfluff:rules:capitalisation.functions]
+extended_capitalisation_policy = lower
+
+[sqlfluff:rules:capitalisation.literals]
+capitalisation_policy = lower
+
+# Relax some rules for dbt
+[sqlfluff:rules:references.from]
+# Allow dbt macros like {{ ref() }} in FROM
+force_enable = false
+
+[sqlfluff:rules:aliasing.table]
+# Require table aliases
+aliasing = explicit
+
+[sqlfluff:rules:aliasing.column]
+# Allow column aliases without AS
+aliasing = implicit
+
+[sqlfluff:rules:ambiguous.column_references]
+# Allow unqualified column references in single-table queries
+group_by_and_order_by_style = implicit

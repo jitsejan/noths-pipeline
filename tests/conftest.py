@@ -1,8 +1,7 @@
 """Shared test fixtures and configuration."""
 
-import os
 from pathlib import Path
-from typing import Any, Generator
+from typing import Any, Callable, Generator
 from unittest.mock import MagicMock
 
 import pytest
@@ -52,13 +51,14 @@ def mock_env(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> Generator[None,
 
 
 @pytest.fixture
-def mock_reviews_response() -> dict[str, Any]:
+def mock_reviews_response() -> Callable[[int], dict[str, Any]]:
     """
     Mock Feefo reviews API response factory that returns different data per page.
 
     Returns:
         Function that generates sample reviews API response for a given page
     """
+
     def get_response_for_page(page: int) -> dict[str, Any]:
         """Generate response for a specific page."""
         return {
@@ -66,63 +66,31 @@ def mock_reviews_response() -> dict[str, Any]:
                 {
                     "url": f"https://feefo.com/review/{page}-1",
                     "id": f"review-{page}-1",
-                    "merchant": {
-                        "identifier": "test-merchant"
-                    },
-                    "customer": {
-                        "display_name": f"Test Customer {page}-1"
-                    },
-                    "service": {
-                        "rating": {
-                            "rating": 5
-                        }
-                    },
+                    "merchant": {"identifier": "test-merchant"},
+                    "customer": {"display_name": f"Test Customer {page}-1"},
+                    "service": {"rating": {"rating": 5}},
                     "products": [
                         {
-                            "product": {
-                                "sku": f"SKU-{page:03d}-1",
-                                "title": f"Test Product {page}-1"
-                            },
-                            "rating": {
-                                "rating": 5
-                            }
+                            "product": {"sku": f"SKU-{page:03d}-1", "title": f"Test Product {page}-1"},
+                            "rating": {"rating": 5},
                         }
-                    ]
+                    ],
                 },
                 {
                     "url": f"https://feefo.com/review/{page}-2",
                     "id": f"review-{page}-2",
-                    "merchant": {
-                        "identifier": "test-merchant"
-                    },
-                    "customer": {
-                        "display_name": f"Test Customer {page}-2"
-                    },
-                    "service": {
-                        "rating": {
-                            "rating": 4
-                        }
-                    },
+                    "merchant": {"identifier": "test-merchant"},
+                    "customer": {"display_name": f"Test Customer {page}-2"},
+                    "service": {"rating": {"rating": 4}},
                     "products": [
                         {
-                            "product": {
-                                "sku": f"SKU-{page:03d}-2",
-                                "title": f"Test Product {page}-2"
-                            },
-                            "rating": {
-                                "rating": 4
-                            }
+                            "product": {"sku": f"SKU-{page:03d}-2", "title": f"Test Product {page}-2"},
+                            "rating": {"rating": 4},
                         }
-                    ]
-                }
+                    ],
+                },
             ],
-            "summary": {
-                "meta": {
-                    "pages": 3,
-                    "page": page,
-                    "count": 2
-                }
-            }
+            "summary": {"meta": {"pages": 3, "page": page, "count": 2}},
         }
 
     return get_response_for_page
@@ -136,22 +104,13 @@ def mock_product_ratings_response() -> dict[str, Any]:
     Returns:
         Sample product ratings API response
     """
-    return {
-        "products": [
-            {
-                "sku": "SKU-001",
-                "title": "Test Product 1",
-                "rating": {
-                    "rating": 4.5,
-                    "count": 10
-                }
-            }
-        ]
-    }
+    return {"products": [{"sku": "SKU-001", "title": "Test Product 1", "rating": {"rating": 4.5, "count": 10}}]}
 
 
 @pytest.fixture
-def mock_requests(monkeypatch: pytest.MonkeyPatch, mock_reviews_response: Any, mock_product_ratings_response: dict[str, Any]) -> MagicMock:
+def mock_requests(
+    monkeypatch: pytest.MonkeyPatch, mock_reviews_response: Any, mock_product_ratings_response: dict[str, Any]
+) -> MagicMock:
     """
     Mock HTTP requests at multiple levels to intercept DLT and direct requests calls.
 
@@ -163,7 +122,6 @@ def mock_requests(monkeypatch: pytest.MonkeyPatch, mock_reviews_response: Any, m
     Returns:
         Mock requests object for call tracking
     """
-    import requests
     from requests import Response
 
     call_tracker = MagicMock()
@@ -172,7 +130,7 @@ def mock_requests(monkeypatch: pytest.MonkeyPatch, mock_reviews_response: Any, m
         """Create a proper Response object with mocked data."""
         response = Response()
         response.status_code = 200
-        response._content = b''
+        response._content = b""
 
         # Return different responses based on URL
         if "reviews/all" in url:
@@ -183,14 +141,16 @@ def mock_requests(monkeypatch: pytest.MonkeyPatch, mock_reviews_response: Any, m
                 page = int(page)
             response_data = mock_reviews_response(page)
             import json
-            response._content = json.dumps(response_data).encode('utf-8')
+
+            response._content = json.dumps(response_data).encode("utf-8")
         elif "products/ratings" in url:
             import json
-            response._content = json.dumps(mock_product_ratings_response).encode('utf-8')
-        else:
-            response._content = b'{}'
 
-        response.headers['Content-Type'] = 'application/json'
+            response._content = json.dumps(mock_product_ratings_response).encode("utf-8")
+        else:
+            response._content = b"{}"
+
+        response.headers["Content-Type"] = "application/json"
         return response
 
     def mock_get(url: str, *args: Any, **kwargs: Any) -> Response:
@@ -202,7 +162,8 @@ def mock_requests(monkeypatch: pytest.MonkeyPatch, mock_reviews_response: Any, m
     def mock_session_send(self: Any, request: Any, **kwargs: Any) -> Response:
         """Mock Session.send method."""
         # Extract params from the prepared request URL
-        from urllib.parse import urlparse, parse_qs
+        from urllib.parse import parse_qs, urlparse
+
         parsed = urlparse(request.url)
         params = {k: v[0] if len(v) == 1 else v for k, v in parse_qs(parsed.query).items()}
 
