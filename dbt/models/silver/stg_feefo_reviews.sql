@@ -24,7 +24,7 @@ renamed as (
         coalesce(service__feedback_verification_state, 'unverified')
             verification_state,
         coalesce(service__helpful_votes, 0) helpful_votes,
-        coalesce(locale, 'en_GB') locale
+        coalesce(locale, 'en_GB') review_locale
 
     from source
     where coalesce(merchant__identifier, 'unknown') = '{{ var("merchant_id") }}'

@@ -68,15 +68,27 @@ aggregated as (
         on
             pr.product_sku = prat.product_sku
             and pr.merchant_id = prat.merchant_id
-    group by pr.merchant_id, pr.product_sku
+    group by 1, 2
 )
 
 select
-    *,
+    a.merchant_id,
+    a.product_sku,
+    a.product_title,
+    a.review_count,
+    a.avg_product_review_rating,
+    a.avg_service_rating,
+    a.catalog_rating,
+    a.rating_delta,
+    a.latest_review_date,
+    a.first_review_date,
+    a.reviews_with_text,
+    a.negative_reviews,
+    a.positive_reviews,
     case
-        when negative_reviews > positive_reviews then 'negative'
-        when positive_reviews > negative_reviews then 'positive'
+        when a.negative_reviews > a.positive_reviews then 'negative'
+        when a.positive_reviews > a.negative_reviews then 'positive'
         else 'neutral'
     end overall_sentiment
-from aggregated
-order by review_count desc, catalog_rating desc
+from aggregated as a
+order by 4 desc, 7 desc

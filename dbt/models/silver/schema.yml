@@ -97,7 +97,7 @@ models:
         description: "Number of helpful votes (COALESCE default: 0)"
         tests:
           - not_null
-      - name: locale
+      - name: review_locale
         description: "Locale/language code (COALESCE default: 'en_GB')"
         tests:
           - not_null

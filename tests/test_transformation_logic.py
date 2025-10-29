@@ -229,7 +229,7 @@ def test_empty_products_array_is_handled() -> None:
         mock_get.return_value.raise_for_status = MagicMock()
 
         # Should not raise an error
-        result = list(
+        list(
             fetch_products_from_reviews(
                 merchant_id="test-merchant", reviews_resource=iter(mock_reviews), period_days=None
             )

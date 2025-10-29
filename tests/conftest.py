@@ -1,7 +1,7 @@
 """Shared test fixtures and configuration."""
 
 from pathlib import Path
-from typing import Any, Generator
+from typing import Any, Callable, Generator
 from unittest.mock import MagicMock
 
 import pytest
@@ -51,7 +51,7 @@ def mock_env(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> Generator[None,
 
 
 @pytest.fixture
-def mock_reviews_response() -> dict[str, Any]:
+def mock_reviews_response() -> Callable[[int], dict[str, Any]]:
     """
     Mock Feefo reviews API response factory that returns different data per page.
 
