@@ -24,10 +24,7 @@ def test_max_pages_limits_api_calls(mock_env: None, mock_requests: MagicMock) ->
     )
 
     # Count how many times the reviews API was called
-    reviews_calls = [
-        call for call in mock_requests.call_args_list
-        if "reviews/all" in str(call[0][0])
-    ]
+    reviews_calls = [call for call in mock_requests.call_args_list if "reviews/all" in str(call[0][0])]
 
     # Should only call reviews API once (page 1)
     assert len(reviews_calls) == 1, f"Expected 1 call to reviews API with max_pages=1, got {len(reviews_calls)}"
@@ -53,14 +50,13 @@ def test_max_pages_with_multiple_pages(mock_env: None, mock_requests: MagicMock)
     )
 
     # Count how many times the reviews API was called
-    reviews_calls = [
-        call for call in mock_requests.call_args_list
-        if "reviews/all" in str(call[0][0])
-    ]
+    reviews_calls = [call for call in mock_requests.call_args_list if "reviews/all" in str(call[0][0])]
 
     # Should make at least 1 call and no more than max_pages (2) calls
     assert len(reviews_calls) >= 1, f"Expected at least 1 call to reviews API, got {len(reviews_calls)}"
-    assert len(reviews_calls) <= 2, f"Expected no more than 2 calls to reviews API with max_pages=2, got {len(reviews_calls)}"
+    assert (
+        len(reviews_calls) <= 2
+    ), f"Expected no more than 2 calls to reviews API with max_pages=2, got {len(reviews_calls)}"
 
     # Verify that the page parameter was passed correctly in the first call
     first_call_url = str(reviews_calls[0][0][0])
@@ -98,13 +94,12 @@ def test_include_ratings_controls_product_api_calls(
     )
 
     # Count product API calls
-    product_calls = [
-        call for call in mock_requests.call_args_list
-        if "products/ratings" in str(call[0][0])
-    ]
+    product_calls = [call for call in mock_requests.call_args_list if "products/ratings" in str(call[0][0])]
 
     # Verify expected behavior
     if expected_product_calls == "at_least_one":
         assert len(product_calls) > 0, "Expected product ratings API calls when include_ratings=True"
     elif expected_product_calls == "none":
-        assert len(product_calls) == 0, f"Expected no product ratings API calls when include_ratings=False, got {len(product_calls)}"
+        assert (
+            len(product_calls) == 0
+        ), f"Expected no product ratings API calls when include_ratings=False, got {len(product_calls)}"

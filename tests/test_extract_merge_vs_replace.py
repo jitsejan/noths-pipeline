@@ -1,9 +1,9 @@
 """Test merge vs replace write dispositions for idempotency."""
 
-import duckdb
 from pathlib import Path
 from unittest.mock import MagicMock
 
+import duckdb
 import pytest
 
 from pipeline.extract import run_dlt
@@ -12,6 +12,7 @@ from pipeline.extract import run_dlt
 def get_db_path(tmp_path_factory: Path) -> str:
     """Get the path to the DuckDB database created by DLT."""
     import os
+
     # Use the environment variable set by mock_env
     return os.getenv("DUCKDB_PATH", "feefo_pipeline.duckdb")
 
@@ -69,6 +70,8 @@ def test_write_disposition_behavior(
     assert first_count > 0, f"First run in {mode} mode should insert data"
 
     if expected_behavior == "idempotent":
-        assert second_count == first_count, f"{mode.capitalize()} mode should be idempotent (same count after second run)"
+        assert (
+            second_count == first_count
+        ), f"{mode.capitalize()} mode should be idempotent (same count after second run)"
     elif expected_behavior == "additive":
         assert second_count == first_count * 2, f"{mode.capitalize()} mode should double the data on second run"

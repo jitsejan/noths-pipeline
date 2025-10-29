@@ -1,7 +1,7 @@
 """Test that CLI flags correctly propagate to the pipeline functions."""
 
-from unittest.mock import MagicMock, patch
 import sys
+from unittest.mock import MagicMock, patch
 
 import pytest
 
@@ -21,13 +21,19 @@ def test_cli_run_command_propagates_flags(monkeypatch: MagicMock) -> None:
         test_args = [
             "cli.py",
             "run",
-            "--merchant-id", "test-merchant",
-            "--max-pages", "5",
-            "--mode", "replace",
+            "--merchant-id",
+            "test-merchant",
+            "--max-pages",
+            "5",
+            "--mode",
+            "replace",
             "--include-ratings",
-            "--period-days", "30",
-            "--since", "2024-01-01",
-            "--until", "2024-12-31",
+            "--period-days",
+            "30",
+            "--since",
+            "2024-01-01",
+            "--until",
+            "2024-12-31",
         ]
         monkeypatch.setattr(sys, "argv", test_args)
 

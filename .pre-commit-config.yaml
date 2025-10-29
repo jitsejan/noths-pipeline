@@ -1,0 +1,69 @@
+# Pre-commit hooks for code quality
+# See https://pre-commit.com for more information
+
+repos:
+  # Ruff - Fast Python linter and formatter
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.8.4
+    hooks:
+      # Run the linter
+      - id: ruff
+        args: [--fix]
+      # Run the formatter
+      - id: ruff-format
+
+  # Mypy - Static type checker
+  - repo: https://github.com/pre-commit/mirrors-mypy
+    rev: v1.13.0
+    hooks:
+      - id: mypy
+        additional_dependencies: [types-requests]
+        args: [--ignore-missing-imports, --no-strict-optional]
+
+  # SQLFluff - SQL linter for dbt
+  - repo: https://github.com/sqlfluff/sqlfluff
+    rev: 3.2.5
+    hooks:
+      - id: sqlfluff-lint
+        args: [--dialect, duckdb, --templater, dbt]
+        files: ^dbt/models/.*\.sql$
+        additional_dependencies: [dbt-duckdb>=1.9.0, sqlfluff-templater-dbt]
+      - id: sqlfluff-fix
+        args: [--dialect, duckdb, --templater, dbt]
+        files: ^dbt/models/.*\.sql$
+        additional_dependencies: [dbt-duckdb>=1.9.0, sqlfluff-templater-dbt]
+
+  # Python tests - Run pytest
+  - repo: local
+    hooks:
+      - id: pytest
+        name: pytest
+        entry: uv run pytest
+        language: system
+        pass_filenames: false
+        always_run: true
+        stages: [commit]
+
+  # DBT tests - Run dbt test
+  - repo: local
+    hooks:
+      - id: dbt-test
+        name: dbt test
+        entry: bash -c 'cd dbt && uv run dbt test'
+        language: system
+        pass_filenames: false
+        always_run: false
+        files: ^dbt/
+        stages: [commit]
+
+  # Standard pre-commit hooks
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v5.0.0
+    hooks:
+      - id: trailing-whitespace
+      - id: end-of-file-fixer
+      - id: check-yaml
+        exclude: ^dbt/
+      - id: check-added-large-files
+        args: [--maxkb=1000]
+      - id: check-merge-conflict

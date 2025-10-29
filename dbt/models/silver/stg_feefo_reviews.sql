@@ -10,23 +10,24 @@ with source as (
 
 renamed as (
     select
-        url as review_id,
-        COALESCE(merchant__identifier, 'unknown') as merchant_id,
-        service__id as service_id,
-        service__rating__rating as service_rating,
-        COALESCE(service__rating__min, 1) as rating_min,
-        COALESCE(service__rating__max, 5) as rating_max,
-        COALESCE(service__moderation_status, 'unmoderated') as moderation_status,
-        COALESCE(service__feedback_verification_state, 'unverified') as verification_state,
-        service__created_at as created_at,
-        COALESCE(service__helpful_votes, 0) as helpful_votes,
-        COALESCE(locale, 'en_GB') as locale,
+        url review_id,
+        service__id service_id,
+        service__rating__rating service_rating,
+        service__created_at created_at,
         last_updated_date,
         _dlt_load_id,
-        _dlt_id
+        _dlt_id,
+        coalesce(merchant__identifier, 'unknown') merchant_id,
+        coalesce(service__rating__min, 1) rating_min,
+        coalesce(service__rating__max, 5) rating_max,
+        coalesce(service__moderation_status, 'unmoderated') moderation_status,
+        coalesce(service__feedback_verification_state, 'unverified')
+            verification_state,
+        coalesce(service__helpful_votes, 0) helpful_votes,
+        coalesce(locale, 'en_GB') locale
 
     from source
-    where COALESCE(merchant__identifier, 'unknown') = '{{ var("merchant_id") }}'
+    where coalesce(merchant__identifier, 'unknown') = '{{ var("merchant_id") }}'
 )
 
 select * from renamed

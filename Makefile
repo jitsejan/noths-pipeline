@@ -1,13 +1,21 @@
-.PHONY: install lint format test dbt dbt-test dagster clean run run-dev run-full clean-data
+.PHONY: install lint format test dbt dbt-test dagster clean run run-dev run-full clean-data pre-commit-install pre-commit-run
 
 install:
 	uv sync --all-extras
 
 lint:
 	uv run ruff check .
+	uv run mypy pipeline tests --ignore-missing-imports
 
 format:
 	uv run ruff format .
+	uv run ruff check --fix .
+
+pre-commit-install:
+	uv run pre-commit install
+
+pre-commit-run:
+	uv run pre-commit run --all-files
 
 test:
 	uv run pytest -q
